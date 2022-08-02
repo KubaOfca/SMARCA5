@@ -35,7 +35,6 @@ jobs:
       - name: Submit Report to Codecov
         uses: codecov/codecov-action@v2
         with:
-          token: ${{ secrets.CODECOV_TOKEN }}
           files: ./coverage.xml
           fail_ci_if_error: true
           verbose: true
