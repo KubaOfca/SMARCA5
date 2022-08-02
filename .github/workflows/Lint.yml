@@ -28,7 +28,7 @@ jobs:
         run: poetry run flake8 smarca5/ tests/
 
       - name: Lint docstrings with pydocstyle
-        run: poetry run pydocstyle smarca5/ tests/
+        run: poetry run pydocstyle smarca5/
 
       - name: Type check the main code
         run: poetry run mypy --disallow-untyped-defs smarca5/
