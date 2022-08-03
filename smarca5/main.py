@@ -2,6 +2,7 @@
 import pandas as pd  # type: ignore
 from typing import Dict, Tuple
 import ttkbootstrap as tk  # type: ignore
+from tkinter import filedialog as fd
 
 
 def read_ref_seq_fasta() -> str:
@@ -105,6 +106,30 @@ def find_peptide_in_protein_seq() -> None:
 
 
 # GUI
+
+
+def browse(entry: tk.Entry) -> None:
+    """
+    Browse button behavior.
+
+    :param entry: tk.Entry object where selected file path will be displayed
+    :return:
+    """
+    entry.delete(0, tk.END)
+    entry.insert(
+        0,
+        fd.askopenfilename(
+            filetypes=[
+                ("Excel files", ".xlsx .xls"),
+                ("CSV files", ".csv"),
+                ("Fasta files", ".fasta"),
+                ("TXT files", ".txt"),
+                ("All files", "*.*"),
+            ]
+        ),
+    )
+
+
 root = tk.Window(themename="darkly")
 
 title_label = tk.Label(root, text="Peptide position finder in protein")
@@ -112,12 +137,16 @@ protein_ref_frame = tk.LabelFrame(
     root, text="Select path of protein sequence fasta file"
 )
 protein_entry = tk.Entry(protein_ref_frame, width=80)
-protein_browse_button = tk.Button(protein_ref_frame, text="Browse")
+protein_browse_button = tk.Button(
+    protein_ref_frame, text="Browse", command=lambda: browse(protein_entry)
+)
 peptide_frame = tk.LabelFrame(
     root, text="Select path of peptide sequence file"
 )
 peptide_entry = tk.Entry(peptide_frame, width=80)
-peptide_browse_button = tk.Button(peptide_frame, text="Browse")
+peptide_browse_button = tk.Button(
+    peptide_frame, text="Browse", command=lambda: browse(peptide_entry)
+)
 analyze_button = tk.Button(root, text="Analyze", bootstyle="danger")
 
 title_label.pack(padx=20, pady=20)
