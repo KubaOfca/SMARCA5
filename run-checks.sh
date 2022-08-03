@@ -1,7 +1,7 @@
 #!/bin/bash
 # Lint and format
 poetry run black smarca5/ tests/
-poetry run pydocstyle seshat/
+poetry run pydocstyle smarca5/
 poetry run flake8 smarca5/ tests/
 
 # Type check
