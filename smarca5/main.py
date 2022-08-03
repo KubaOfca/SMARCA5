@@ -1,27 +1,30 @@
 """Main module."""
 import pandas as pd  # type: ignore
+from typing import Dict, Tuple
 
 
-def read_ref_seq_fasta() -> None:
+def read_ref_seq_fasta() -> str:
     """
     Read reference protein sequence in fasta format.
 
-    :return: None
+    :return: str
     """
     ref_seq_fasta = ""
     with open(r"..\pliki-krok\SMARCA5_fasta.txt", "r") as file:
         for line in file:
             if line[0] != ">":
                 ref_seq_fasta += line.strip()
+    return ref_seq_fasta
 
 
 def create_lps(peptide: str, peptide_len: int) -> list[int]:
     """
-    Create lps table which stores length of the maximum matching proper prefix (part of KMP algorithm).
+    Create lps table.
 
     :param peptide: peptide sequence
     :param peptide_len: length of peptide sequence
-    :return: list containing integers which store information about length of prefix
+    :return: list containing integers which store information
+    about length of prefix
     """
     lps = [0] * peptide_len
     prefix_len = 0
@@ -41,26 +44,36 @@ def create_lps(peptide: str, peptide_len: int) -> list[int]:
     return lps
 
 
-def search_peptide_in_protein_seq(peptide: str, protein_seq: str) -> None:
+def search_peptide_in_protein_seq(
+    peptide: pd.Series,
+    protein_seq: str,
+    result: Dict[Tuple[int, int], pd.Series],
+) -> None:
     """
     KMP (Knuth–Morris–Pratt algorithm) for pattern searching.
 
+    :param result:
     :param peptide: pattern
     :param protein_seq: text where we want to find pattern
     :return: None
     """
     n = len(protein_seq)
-    m = len(peptide)
+    m = len(peptide.Sequence)
 
-    lps = create_lps(peptide, m)
+    lps = create_lps(peptide.Sequence, m)
     i = 0
     j = 0
 
     while (n - i) >= (m - j):
         if j == m:
-            print(f"found at {i - j}")
+            coords = (i - j, i)
+            if coords in result:
+                result[coords]["Amount"] += 1
+            else:
+                result[coords] = peptide
+                result[coords]["Amount"] += 1
             j = lps[j - 1]
-        elif protein_seq[i] == peptide[j]:
+        elif protein_seq[i] == peptide.Sequence[j]:
             i += 1
             j += 1
         elif j > 0:
@@ -69,6 +82,25 @@ def search_peptide_in_protein_seq(peptide: str, protein_seq: str) -> None:
             i += 1
 
 
-result_of_experiment = pd.read_excel(
-    r"..\pliki-krok\SMARCA5.xlsx", header=None, sheet_name="SMARCA5"
-)
+def find_peptide_in_protein_seq() -> None:
+    """
+    Find position of peptide in protein sequence.
+
+    :return:
+    """
+    ref_seq_fasta = read_ref_seq_fasta()
+    result_of_experiment = pd.read_excel(
+        r"..\pliki-krok\SMARCA5.xlsx", sheet_name="SMARCA5"
+    ).loc[:, ["Sequence", "Proteins", "Experiment"]]
+    result: Dict[
+        Tuple[int, int], pd.Series
+    ] = {}  # coord 0 is first letter in string
+    for index, row in result_of_experiment.iterrows():
+        row["Amount"] = 0
+        search_peptide_in_protein_seq(
+            peptide=row, protein_seq=ref_seq_fasta, result=result
+        )
+    print(result)
+
+
+find_peptide_in_protein_seq()
