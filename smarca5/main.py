@@ -3,6 +3,11 @@ import pandas as pd  # type: ignore
 
 
 def read_ref_seq_fasta() -> None:
+    """
+    Read reference protein sequence in fasta format.
+
+    :return: None
+    """
     ref_seq_fasta = ""
     with open(r"..\pliki-krok\SMARCA5_fasta.txt", "r") as file:
         for line in file:
@@ -11,6 +16,13 @@ def read_ref_seq_fasta() -> None:
 
 
 def create_lps(peptide: str, peptide_len: int) -> list[int]:
+    """
+    Create lps table which stores length of the maximum matching proper prefix (part of KMP algorithm).
+
+    :param peptide: peptide sequence
+    :param peptide_len: length of peptide sequence
+    :return: list containing integers which store information about length of prefix
+    """
     lps = [0] * peptide_len
     prefix_len = 0
     i = 1
@@ -30,6 +42,13 @@ def create_lps(peptide: str, peptide_len: int) -> list[int]:
 
 
 def search_peptide_in_protein_seq(peptide: str, protein_seq: str) -> None:
+    """
+    KMP (Knuth–Morris–Pratt algorithm) for pattern searching.
+
+    :param peptide: pattern
+    :param protein_seq: text where we want to find pattern
+    :return: None
+    """
     n = len(protein_seq)
     m = len(peptide)
 
