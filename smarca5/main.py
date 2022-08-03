@@ -1,6 +1,7 @@
 """Main module."""
 import pandas as pd  # type: ignore
 from typing import Dict, Tuple
+import ttkbootstrap as tk  # type: ignore
 
 
 def read_ref_seq_fasta() -> str:
@@ -103,4 +104,29 @@ def find_peptide_in_protein_seq() -> None:
     print(result)
 
 
-find_peptide_in_protein_seq()
+# GUI
+root = tk.Window(themename="darkly")
+
+title_label = tk.Label(root, text="Peptide position finder in protein")
+protein_ref_frame = tk.LabelFrame(
+    root, text="Select path of protein sequence fasta file"
+)
+protein_entry = tk.Entry(protein_ref_frame, width=80)
+protein_browse_button = tk.Button(protein_ref_frame, text="Browse")
+peptide_frame = tk.LabelFrame(
+    root, text="Select path of peptide sequence file"
+)
+peptide_entry = tk.Entry(peptide_frame, width=80)
+peptide_browse_button = tk.Button(peptide_frame, text="Browse")
+analyze_button = tk.Button(root, text="Analyze", bootstyle="danger")
+
+title_label.pack(padx=20, pady=20)
+protein_ref_frame.pack(padx=20, pady=20)
+protein_entry.grid(row=0, column=0, padx=20, pady=20)
+protein_browse_button.grid(row=0, column=1, padx=20, pady=20)
+peptide_frame.pack(padx=20, pady=20)
+peptide_entry.grid(row=0, column=0, padx=20, pady=20)
+peptide_browse_button.grid(row=0, column=1, padx=20, pady=20)
+analyze_button.pack(padx=20, pady=20)
+
+root.mainloop()
