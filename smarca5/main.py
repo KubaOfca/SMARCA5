@@ -1,6 +1,6 @@
 """Main module."""
 import pandas as pd  # type: ignore
-from typing import Dict, Tuple
+from typing import List
 import ttkbootstrap as tk  # type: ignore
 from tkinter import filedialog as fd
 
@@ -49,7 +49,7 @@ def create_lps(peptide: str, peptide_len: int) -> list[int]:
 def search_peptide_in_protein_seq(
     peptide: pd.Series,
     protein_seq: str,
-    result: Dict[Tuple[int, int], pd.Series],
+    result: List[pd.Series],
 ) -> None:
     """
     KMP (Knuth–Morris–Pratt algorithm) for pattern searching.
@@ -69,11 +69,8 @@ def search_peptide_in_protein_seq(
     while (n - i) >= (m - j):
         if j == m:
             coords = (i - j, i)
-            if coords in result:
-                result[coords]["Amount"] += 1
-            else:
-                result[coords] = peptide
-                result[coords]["Amount"] += 1
+            peptide["Coords"] = coords
+            result.append(peptide)
             j = lps[j - 1]
         elif protein_seq[i] == peptide.Sequence[j]:
             i += 1
@@ -94,11 +91,8 @@ def find_peptide_in_protein_seq() -> None:
     result_of_experiment = pd.read_excel(
         r"..\pliki-krok\SMARCA5.xlsx", sheet_name="SMARCA5"
     ).loc[:, ["Sequence", "Proteins", "Experiment"]]
-    result: Dict[
-        Tuple[int, int], pd.Series
-    ] = {}  # coord 0 is first letter in string
+    result: List[pd.Series] = []  # coord 0 is first letter in string
     for index, row in result_of_experiment.iterrows():
-        row["Amount"] = 0
         search_peptide_in_protein_seq(
             peptide=row, protein_seq=ref_seq_fasta, result=result
         )
@@ -147,7 +141,12 @@ peptide_entry = tk.Entry(peptide_frame, width=80)
 peptide_browse_button = tk.Button(
     peptide_frame, text="Browse", command=lambda: browse(peptide_entry)
 )
-analyze_button = tk.Button(root, text="Analyze", bootstyle="danger")
+analyze_button = tk.Button(
+    root,
+    text="Analyze",
+    bootstyle="danger",
+    command=find_peptide_in_protein_seq,
+)
 
 title_label.pack(padx=20, pady=20)
 protein_ref_frame.pack(padx=20, pady=20)
