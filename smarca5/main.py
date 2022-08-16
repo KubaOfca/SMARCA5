@@ -13,11 +13,13 @@ import matplotlib.pyplot as plt  # type: ignore
 import matplotlib as mpl  # type: ignore
 import re
 import numpy
+
 # flake8: noqa E203
 LINE_LENGTH_DISPLAYED = 80
 SIZE_OF_THE_TOP_SPACE_BETWEEN_THE_LINES = 4
 LEFT_TEXT_OFFSET = 33
 UNIQUE_PATTERN = re.compile(r".*Unique: (.*)\n.*")
+
 
 def read_ref_seq_fasta() -> str:
     """
@@ -26,7 +28,7 @@ def read_ref_seq_fasta() -> str:
     :return: reference sequence string
     """
     ref_seq_fasta = ""
-    with open(r"..\pliki-SMARCA5\SMARCA5_fasta.txt", "r") as file:
+    with open(rf"{protein_entry.get()}", "r") as file:
         for line in file:
             if line[0] != ">":
                 ref_seq_fasta += line.strip()
@@ -423,9 +425,9 @@ def find_peptide_in_protein_seq() -> None:
     :return: None
     """
     ref_seq_fasta = read_ref_seq_fasta()
-    result_of_experiment = pd.read_excel(
-        r"..\pliki-SMARCA5\SMARCA5.xlsx", sheet_name="SMARCA5"
-    ).loc[:, ["Sequence", "Proteins", "Experiment"]]
+    result_of_experiment = pd.read_excel(rf"{peptide_entry.get()}").loc[
+        :, ["Sequence", "Proteins", "Experiment"]
+    ]
 
     result, amount = search_peptide_in_protein_seq(
         result_of_experiment, ref_seq_fasta
@@ -456,11 +458,11 @@ def browse(entry: tk.Entry) -> None:
         0,
         fd.askopenfilename(
             filetypes=[
+                ("All files", "*.*"),
                 ("Excel files", ".xlsx .xls"),
                 ("CSV files", ".csv"),
                 ("Fasta files", ".fasta"),
                 ("TXT files", ".txt"),
-                ("All files", "*.*"),
             ]
         ),
     )
