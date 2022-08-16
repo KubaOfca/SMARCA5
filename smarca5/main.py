@@ -2,7 +2,8 @@
 import bs4  # type: ignore
 import colour  # type: ignore
 import pandas as pd  # type: ignore
-from typing import List, Dict, Tuple, Set
+import typing
+from typing import List, Dict, Tuple, Set, Union
 import ttkbootstrap as tk  # type: ignore
 from tkinter import filedialog as fd
 import webbrowser
@@ -10,6 +11,11 @@ from bs4 import BeautifulSoup
 from colour import Color
 import matplotlib.pyplot as plt  # type: ignore
 import matplotlib as mpl  # type: ignore
+
+# flake8: noqa E203
+LINE_LENGTH_DISPLAYED = 80
+SIZE_OF_THE_TOP_SPACE_BETWEEN_THE_LINES = 4
+LEFT_TEXT_OFFSET = 32
 
 
 def read_ref_seq_fasta() -> str:
@@ -19,7 +25,7 @@ def read_ref_seq_fasta() -> str:
     :return: reference sequence string
     """
     ref_seq_fasta = ""
-    with open(r"..\pliki-krok\SMARCA5_fasta.txt", "r") as file:
+    with open(r"..\pliki-SMARCA5\SMARCA5_fasta.txt", "r") as file:
         for line in file:
             if line[0] != ">":
                 ref_seq_fasta += line.strip()
@@ -165,34 +171,140 @@ def create_color_bar_image(
     return colors
 
 
+@typing.no_type_check
+def search_peptide_height(
+    peptide: pd.Series,
+    config,
+) -> int:
+    """
+    Find peptide height in order to display it correctly.
+
+    :param peptide: peptide information (pd.Series)
+    :param config: configuration of html properties
+    :return: height of peptide (top parameter in html)
+    """
+    max_height = (
+        config["protein_line_height"] + SIZE_OF_THE_TOP_SPACE_BETWEEN_THE_LINES
+    )
+    x, y = peptide["Coords"]
+    for key, value in config["peptides_already_displayed"].items():
+        if key[0] >= y or key[1] > x:
+            tmp = value + SIZE_OF_THE_TOP_SPACE_BETWEEN_THE_LINES
+            if tmp > max_height:
+                max_height = tmp
+    config["peptides_already_displayed"][(x, y)] = max_height
+    return max_height
+
+
+@typing.no_type_check
 def add_peptide_on_html_page(
     soup: bs4.BeautifulSoup,
     peptide: pd.Series,
-    colors: List[colour.Color],
-    amount_list: List[str],
+    peptide_color,
     tooltip_text: str,
-    alignment: str,
+    is_transfer_element: bool,
+    config,
 ) -> None:
     """
     Add peptide to div in order to display it on page.
 
     :param soup: html page handler
     :param peptide: peptide information (pd.Series)
-    :param colors: list of color bar colors
-    :param amount_list: peptide sequence list in descending order
+    :param peptide_color: color of peptide
     :param tooltip_text: string containing peptide extra information
-    :param alignment: peptide sequence alignment to ref sequence
+    :param is_transfer_element: if True left margin is set to 0
+    :param config: configuration of html properties
     :return: None
     """
-    div_center = soup.find("div", {"class": "center"})
-    p_tag = soup.new_tag("p")
-    peptide_seq = peptide["Sequence"]
-    p_tag[
-        "style"
-    ] = f"color: {colors[amount_list.index(f'{peptide_seq}')].hex}"
-    p_tag["title"] = tooltip_text
-    div_center.append(p_tag)
-    p_tag.append(soup.new_string(alignment))
+    peptide_height = search_peptide_height(peptide, config)
+    if peptide_height == config["protein_line_height"]:
+        peptide_height += SIZE_OF_THE_TOP_SPACE_BETWEEN_THE_LINES
+
+    span_tag = soup.new_tag("span")
+    peptide_sequence_str = peptide["Sequence"]
+    if is_transfer_element:
+        left_pos = 0
+    else:
+        left_pos = (peptide["Coords"][0]) % LINE_LENGTH_DISPLAYED
+    span_tag["style"] = (
+        f"color: {peptide_color};"
+        f" left: {LEFT_TEXT_OFFSET + left_pos}ch;"
+        f" top: {peptide_height}ch"
+    )
+    span_tag["title"] = tooltip_text
+    config["div_center"].append(span_tag)
+
+    if (
+        peptide["Coords"][0]
+        < config["current_first_index_of_protein_sequence"]
+        and config["current_first_index_of_protein_sequence"]
+        < peptide["Coords"][1]
+    ):
+        span_tag.append(
+            soup.new_string(
+                peptide["Sequence"][
+                    : config["current_first_index_of_protein_sequence"]
+                    - peptide["Coords"][1]
+                ]
+            )
+        )
+        new_coords_x = config["current_first_index_of_protein_sequence"]
+        new_coords_y = peptide["Coords"][1]
+        config["list_of_element_to_transfer"].append(
+            (
+                (new_coords_x, new_coords_y),
+                peptide["Sequence"][
+                    config["current_first_index_of_protein_sequence"]
+                    - peptide["Coords"][1] :
+                ],
+                peptide_color,
+                tooltip_text,
+            )
+        )
+    else:
+        span_tag.append(soup.new_string(peptide_sequence_str))
+
+
+@typing.no_type_check
+def add_next_line_of_protein_sequence(
+    soup: bs4.BeautifulSoup,
+    ref_seq_fasta: str,
+    config,
+) -> None:
+    """
+    Add next line contain protein sequence.
+
+    :param soup: html page handler
+    :param ref_seq_fasta: protein sequence
+    :param config: configuration of html properties
+    :return: None
+    """
+    # TODO: possible bug
+    current_max_height = max(
+        config["peptides_already_displayed"].values(), default=0
+    )
+    if current_max_height != 0:
+        current_max_height += SIZE_OF_THE_TOP_SPACE_BETWEEN_THE_LINES
+
+    span_tag = soup.new_tag("span")
+    span_tag["style"] = (
+        f"color: white;"
+        f" left: {LEFT_TEXT_OFFSET}ch;"
+        f" top: {current_max_height}ch"
+    )
+    span_tag.append(
+        soup.new_string(
+            ref_seq_fasta[
+                config["current_first_index_of_protein_sequence"] : config[
+                    "current_first_index_of_protein_sequence"
+                ]
+                + LINE_LENGTH_DISPLAYED
+            ]
+        )
+    )
+    config["div_center"].append(span_tag)
+    config["current_first_index_of_protein_sequence"] += LINE_LENGTH_DISPLAYED
+    config["protein_line_height"] = current_max_height
 
 
 def create_html_report(
@@ -216,26 +328,68 @@ def create_html_report(
     """
     with open("index.html", "r") as html:
         soup = BeautifulSoup(html, "html.parser")
-    soup.div.p.string = ref_seq_fasta
+    display_config = {
+        "current_first_index_of_protein_sequence": 0,
+        "protein_line_height": 0,
+        "peptides_already_displayed": {},
+        "list_of_element_to_transfer": [],
+        "div_center": soup.find("div", {"class": "center"}),
+    }
+    add_next_line_of_protein_sequence(soup, ref_seq_fasta, display_config)
     current_seq = ""
-
     for peptide in result:
+        # TODO: nazwa do poprawy current first...
+        if (
+            peptide["Coords"][0]
+            >= display_config["current_first_index_of_protein_sequence"]
+        ):
+            add_next_line_of_protein_sequence(
+                soup, ref_seq_fasta, display_config
+            )
+
+            for element_to_transfer in display_config[
+                "list_of_element_to_transfer"
+            ]:
+                transfer_peptide_info = {
+                    "Sequence": element_to_transfer[1],
+                    "Coords": element_to_transfer[0],
+                }
+                transfer_peptide_info_series = pd.Series(transfer_peptide_info)
+                add_peptide_on_html_page(
+                    soup,
+                    transfer_peptide_info_series,
+                    element_to_transfer[2],
+                    element_to_transfer[3],
+                    True,
+                    display_config,
+                )
+
+            display_config["list_of_element_to_transfer"] = []
+
         if peptide["Sequence"] == current_seq:
             continue
-        else:
-            current_seq = peptide["Sequence"]
-            tooltip_text = create_table_of_information_about_peptide(
-                result, current_seq, amount, all_possible_experiment_type
+
+        # sprawdzic gdy nie ma w linijce zadnego peptydu
+        while (
+            peptide["Coords"][0]
+            > display_config["current_first_index_of_protein_sequence"]
+        ):
+            add_next_line_of_protein_sequence(
+                soup, ref_seq_fasta, display_config
             )
-        alignment = "-" * len(ref_seq_fasta)
-        alignment = (
-            alignment[: peptide["Coords"][0]]
-            + current_seq
-            + alignment[peptide["Coords"][1] :]  # noqa: E203
+
+        current_seq = peptide["Sequence"]
+        tooltip_text = create_table_of_information_about_peptide(
+            result, current_seq, amount, all_possible_experiment_type
         )
-        alignment = alignment.replace("-", "\xa0")
+        peptide_color = colors[amount_list.index(f"{current_seq}")].hex
         add_peptide_on_html_page(
-            soup, peptide, colors, amount_list, tooltip_text, alignment
+            soup,
+            peptide,
+            peptide_color,
+            tooltip_text,
+            False,
+            display_config,
         )
 
     # save changes to page.html and display page with result
@@ -250,11 +404,11 @@ def find_peptide_in_protein_seq() -> None:
     """
     Find position of peptide in protein sequence.
 
-    :return:
+    :return: None
     """
     ref_seq_fasta = read_ref_seq_fasta()
     result_of_experiment = pd.read_excel(
-        r"..\pliki-krok\SMARCA5.xlsx", sheet_name="SMARCA5"
+        r"..\pliki-SMARCA5\SMARCA5.xlsx", sheet_name="SMARCA5"
     ).loc[:, ["Sequence", "Proteins", "Experiment"]]
 
     result, amount = search_peptide_in_protein_seq(

@@ -1,5 +1,5 @@
 body{
-    font-family: Courier;
+    font-family: Courier New;
     font-size: 15px;
     font-weight: bold;
     background-color: white;
@@ -49,4 +49,9 @@ img {
 a{
     text-decoration: none;
     color: inherit;
+}
+
+span{
+    position: absolute;
+    z-index: -1;
 }
