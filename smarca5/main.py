@@ -11,12 +11,12 @@ from bs4 import BeautifulSoup
 from colour import Color
 import matplotlib.pyplot as plt  # type: ignore
 import matplotlib as mpl  # type: ignore
-
+import re
 # flake8: noqa E203
 LINE_LENGTH_DISPLAYED = 80
 SIZE_OF_THE_TOP_SPACE_BETWEEN_THE_LINES = 4
 LEFT_TEXT_OFFSET = 32
-
+UNIQUE_PATTERN = re.compile(r".*Unique: (.*)\n.*")
 
 def read_ref_seq_fasta() -> str:
     """
@@ -123,18 +123,25 @@ def create_table_of_information_about_peptide(
     not_existing_experiments = []
     for peptide in result:
         if peptide["Sequence"] == current_peptide_seq:
-            if peptide["Proteins"] not in peptide_proteins:
-                peptide_proteins.append(peptide["Proteins"])
+            tmp_peptide_protein_list = peptide["Proteins"].split(";")
+            for protein in tmp_peptide_protein_list:
+                if protein not in peptide_proteins:
+                    peptide_proteins.append(protein)
             if peptide["Experiment"] not in peptide_experiments:
                 peptide_experiments.append(peptide["Experiment"])
     for experiment in experiment_types:
         if experiment not in peptide_experiments:
             not_existing_experiments.append(experiment)
-    proteins_str = ", ".join(peptide_proteins).replace(";", ", ")
+    proteins_str = ", ".join(peptide_proteins)
     experiment_str = ", ".join(peptide_experiments)
     not_existing_experiment_str = ", ".join(not_existing_experiments)
+    if len(peptide_proteins) == 1:
+        unique_str = "True"
+    else:
+        unique_str = "False"
     return (
         f"Proteins: {proteins_str}\n"
+        f"Unique: {unique_str}\n"
         f"Experiment: {experiment_str}\n"
         f"Experiments not found: {not_existing_experiment_str}\n"
         f"Amount: {amount[current_peptide_seq]}"
@@ -226,10 +233,16 @@ def add_peptide_on_html_page(
         left_pos = 0
     else:
         left_pos = (peptide["Coords"][0]) % LINE_LENGTH_DISPLAYED
+    unique_bool = UNIQUE_PATTERN.search(tooltip_text)
+    if unique_bool.group(1) == "True":
+        underline = f"{peptide_color} underline"
+    else:
+        underline = "none"
     span_tag["style"] = (
         f"color: {peptide_color};"
         f" left: {LEFT_TEXT_OFFSET + left_pos}ch;"
-        f" top: {peptide_height}ch"
+        f" top: {peptide_height}ch;"
+        f" text-decoration: {underline};"
     )
     span_tag["title"] = tooltip_text
     config["div_center"].append(span_tag)
