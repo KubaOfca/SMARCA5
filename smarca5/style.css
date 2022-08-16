@@ -2,7 +2,7 @@ body{
     font-family: Courier New;
     font-size: 15px;
     font-weight: bold;
-    background-color: white;
+    background-color: rgba(0, 0, 0, 0.91);
 
 }
 
@@ -17,20 +17,16 @@ body{
      height:100vh;
      position:fixed;
      top:0;
-     background-color: white;
 }
 
 .center {
      margin-left:310px;
      margin-right: 180px;
      flex: 3;
-     text-shadow: 2px 0 #000, -2px 0 #000, 0 2px #000, 0 -2px #000,
-               1px 1px #000, -1px -1px #000, 1px -1px #000, -1px 1px #000;
-
 }
 
 .vl {
-  border-left: 6px solid black;
+  border-left: 6px solid rgba(253, 220, 1, 0.88);
   height: 100vh;
   position: fixed;
   left: 20%;
@@ -39,20 +35,34 @@ body{
 }
 
 img {
-    position: absolute;
-    margin: auto;
-    left: 0;
-    right: 0;
-    box-shadow: rgba(0, 0, 0, 0.24) 0px 3px 8px;
-}
-
-a{
-    text-decoration: none;
-    color: inherit;
+    display: flex;
+    margin: 25px auto auto;
+    border: 3px solid rgba(253, 220, 1, 0.88);
 }
 
 span{
     position: absolute;
     z-index: -1;
-    text-underline-offset: 3px;
+    text-underline-offset: 5px;
+    text-shadow: 2px 0 #000, -2px 0 #000, 0 2px #000, 0 -2px #000,
+    1px 1px #000, -1px -1px #000, 1px -1px #000, -1px 1px #000;
+}
+
+p{
+    color: white;
+}
+
+.resultLegend{
+    border: 3px solid white;
+    margin: 10px;
+    padding: 5px;
+}
+
+.vl2 {
+  border-left: 6px solid rgba(253, 220, 1, 0.88);
+  height: 100vh;
+  position: fixed;
+  left: 80%;
+  top: 0;
+  box-shadow: rgba(0, 0, 0, 0.24) 0px 3px 8px;
 }

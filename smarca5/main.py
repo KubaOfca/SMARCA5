@@ -12,10 +12,11 @@ from colour import Color
 import matplotlib.pyplot as plt  # type: ignore
 import matplotlib as mpl  # type: ignore
 import re
+import numpy
 # flake8: noqa E203
 LINE_LENGTH_DISPLAYED = 80
 SIZE_OF_THE_TOP_SPACE_BETWEEN_THE_LINES = 4
-LEFT_TEXT_OFFSET = 32
+LEFT_TEXT_OFFSET = 33
 UNIQUE_PATTERN = re.compile(r".*Unique: (.*)\n.*")
 
 def read_ref_seq_fasta() -> str:
@@ -161,15 +162,17 @@ def create_color_bar_image(
     red = Color("red")
     colors = list(red.range_to(Color("pink"), len(amount)))
 
-    fig, ax = plt.subplots(figsize=(2, 4))
+    fig, ax = plt.subplots(figsize=(1, 4))
     fig.subplots_adjust(right=0.5)
 
     cmap = mpl.colors.LinearSegmentedColormap.from_list(
         "", [x.hex for x in reversed(colors)]
     )
-    norm = mpl.colors.Normalize(
-        vmin=amount[amount_list[-1]], vmax=amount[amount_list[0]]
-    )
+    # norm = mpl.colors.Normalize(
+    #     vmin=amount[amount_list[-1]], vmax=amount[amount_list[0]]
+    # )
+    bounds = [amount[x] for x in reversed(amount_list)]
+    norm = mpl.colors.BoundaryNorm(boundaries=bounds, ncolors=256)
 
     cb1 = mpl.colorbar.ColorbarBase(ax, cmap=cmap, norm=norm)
     cb1.set_label("Amount of peptide")
