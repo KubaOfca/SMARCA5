@@ -481,6 +481,8 @@ def find_peptide_in_protein_seq() -> None:
 
     :return: None
     """
+    global LINE_LENGTH_DISPLAYED
+    LINE_LENGTH_DISPLAYED = int(spin_box.get())
     ref_seq_fasta = read_ref_seq_fasta()
     result_of_experiment = pd.read_excel(rf"{peptide_entry.get()}").loc[
         :, ["Sequence", "Proteins", "Experiment"]
@@ -572,12 +574,18 @@ peptide_entry = tk.Entry(peptide_frame, width=80)
 peptide_browse_button = tk.Button(
     peptide_frame, text="Browse", command=lambda: browse(peptide_entry)
 )
+button_frame = tk.Frame(root)
 analyze_button = tk.Button(
-    root,
+    button_frame,
     text="Analyze",
     bootstyle="danger",
     command=find_peptide_in_protein_seq,
 )
+
+spin_box = tk.Spinbox(button_frame, from_=1, to=1000)
+spin_box.insert(0, "80")
+
+sping_box_label = tk.Label(button_frame, text="Line length:")
 
 title_label.pack(padx=20, pady=20)
 protein_ref_frame.pack(padx=20, pady=20)
@@ -586,6 +594,9 @@ protein_browse_button.grid(row=0, column=1, padx=20, pady=20)
 peptide_frame.pack(padx=20, pady=20)
 peptide_entry.grid(row=0, column=0, padx=20, pady=20)
 peptide_browse_button.grid(row=0, column=1, padx=20, pady=20)
-analyze_button.pack(padx=20, pady=20)
+button_frame.pack(padx=20, pady=20)
+sping_box_label.grid(row=0, column=0, padx=10, pady=20)
+spin_box.grid(row=0, column=1, padx=10, pady=20)
+analyze_button.grid(row=1, column=0, columnspan=2, padx=20, pady=20)
 
 root.mainloop()
