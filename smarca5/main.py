@@ -12,13 +12,23 @@ from colour import Color
 import matplotlib.pyplot as plt  # type: ignore
 import matplotlib as mpl  # type: ignore
 import re
-import numpy
+import os
 
 # flake8: noqa E203
 LINE_LENGTH_DISPLAYED = 80
 SIZE_OF_THE_TOP_SPACE_BETWEEN_THE_LINES = 4
 LEFT_TEXT_OFFSET = 33
 UNIQUE_PATTERN = re.compile(r".*Unique: (.*)\n.*")
+
+
+def load_file(file_name: str) -> str:
+    """
+    Load file in correct format for creating exe one-file.
+
+    :param file_name: filename to load
+    :return: str of correct path to file
+    """
+    return os.path.join(os.path.dirname(__file__), file_name)
 
 
 def read_ref_seq_fasta() -> str:
@@ -178,7 +188,7 @@ def create_color_bar_image(
 
     cb1 = mpl.colorbar.ColorbarBase(ax, cmap=cmap, norm=norm)
     cb1.set_label("Amount of peptide")
-    fig.savefig("Amount_of_peptide.png")
+    fig.savefig(load_file(r"html_files\Amount_of_peptide.png"))
 
     return colors
 
@@ -344,7 +354,7 @@ def create_html_report(
     :param colors: list of color bar colors
     :return: None
     """
-    with open("index.html", "r") as html:
+    with open(load_file(r"html_files\index.html"), "r") as html:
         soup = BeautifulSoup(html, "html.parser")
     display_config = {
         "current_first_index_of_protein_sequence": 0,
@@ -411,11 +421,11 @@ def create_html_report(
         )
 
     # save changes to page.html and display page with result
-    with open("page.html", "w") as page:
+    with open(load_file(r"html_files\page.html"), "w") as page:
         page.write(
             soup.prettify(formatter="html")
         )  # soup.encode(formatter="html")
-        webbrowser.open_new_tab("page.html")
+        webbrowser.open_new_tab(load_file(r"html_files\page.html"))
 
 
 def find_peptide_in_protein_seq() -> None:
