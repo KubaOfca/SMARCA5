@@ -19,6 +19,17 @@ body{
      top:0;
 }
 
+.right{
+     flex: 1;
+     right: 0;
+     width: 20%;
+     height:100vh;
+     position:fixed;
+     top:0;
+     color: white;
+     overflow: scroll;
+}
+
 .center {
      margin-left:310px;
      margin-right: 180px;
@@ -65,4 +76,13 @@ p{
   left: 80%;
   top: 0;
   box-shadow: rgba(0, 0, 0, 0.24) 0px 3px 8px;
+}
+
+a{
+    color: inherit;
+    text-underline-offset: 4px;
+}
+
+li{
+  margin: 10px 0;
 }

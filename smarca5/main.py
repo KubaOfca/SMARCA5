@@ -3,7 +3,7 @@ import bs4  # type: ignore
 import colour  # type: ignore
 import pandas as pd  # type: ignore
 import typing
-from typing import List, Dict, Tuple, Set, Union
+from typing import List, Dict, Tuple, Set
 import ttkbootstrap as tk  # type: ignore
 from tkinter import filedialog as fd
 import webbrowser
@@ -19,6 +19,7 @@ LINE_LENGTH_DISPLAYED = 80
 SIZE_OF_THE_TOP_SPACE_BETWEEN_THE_LINES = 4
 LEFT_TEXT_OFFSET = 33
 UNIQUE_PATTERN = re.compile(r".*Unique: (.*)\n.*")
+EXPERIMENT_PATTERN = re.compile(r"(.*_\D*)")
 
 
 def load_file(file_name: str) -> str:
@@ -309,9 +310,11 @@ def add_next_line_of_protein_sequence(
     """
     # TODO: possible bug
     current_max_height = max(
-        config["peptides_already_displayed"].values(), default=0
+        config["peptides_already_displayed"].values(), default=-SIZE_OF_THE_TOP_SPACE_BETWEEN_THE_LINES
     )
-    if current_max_height != 0:
+    if current_max_height <= config["protein_line_height"]:
+        current_max_height = config["protein_line_height"] + SIZE_OF_THE_TOP_SPACE_BETWEEN_THE_LINES
+    else:
         current_max_height += SIZE_OF_THE_TOP_SPACE_BETWEEN_THE_LINES
 
     span_tag = soup.new_tag("span")
@@ -335,6 +338,16 @@ def add_next_line_of_protein_sequence(
     config["protein_line_height"] = current_max_height
 
 
+def create_right_panel_menu(soup, experiment):
+    list_panel = soup.find("ul")
+    for x in experiment:
+        li_tag = soup.new_tag("li")
+        a_tag = soup.new_tag("a", href=f"{x}.html")
+        a_tag.string = x
+        li_tag.append(a_tag)
+        list_panel.append(li_tag)
+
+
 def create_html_report(
     result: List[pd.Series],
     ref_seq_fasta: str,
@@ -342,6 +355,9 @@ def create_html_report(
     amount_list: List[str],
     all_possible_experiment_type: Set[str],
     colors: List[colour.Color],
+    exp: str,
+    is_first_report: bool,
+    exp_type: Set[str]
 ) -> None:
     """
     Create html report.
@@ -352,17 +368,20 @@ def create_html_report(
     :param amount_list: peptide sequence list in descending order
     :param all_possible_experiment_type: list of all found experiment types
     :param colors: list of color bar colors
+    :param exp: experiment type
     :return: None
     """
     with open(load_file(r"html_files\index.html"), "r") as html:
         soup = BeautifulSoup(html, "html.parser")
     display_config = {
         "current_first_index_of_protein_sequence": 0,
-        "protein_line_height": 0,
+        "protein_line_height": -SIZE_OF_THE_TOP_SPACE_BETWEEN_THE_LINES,
         "peptides_already_displayed": {},
         "list_of_element_to_transfer": [],
         "div_center": soup.find("div", {"class": "center"}),
     }
+    soup.title.string = exp
+    create_right_panel_menu(soup, exp_type)
     add_next_line_of_protein_sequence(soup, ref_seq_fasta, display_config)
     current_seq = ""
     for peptide in result:
@@ -420,12 +439,17 @@ def create_html_report(
             display_config,
         )
 
+    while len(ref_seq_fasta) > display_config["current_first_index_of_protein_sequence"]:
+        add_next_line_of_protein_sequence(
+            soup, ref_seq_fasta, display_config
+        )
     # save changes to page.html and display page with result
-    with open(load_file(r"html_files\page.html"), "w") as page:
+    with open(load_file(rf"html_files\{exp}.html"), "w") as page:
         page.write(
             soup.prettify(formatter="html")
         )  # soup.encode(formatter="html")
-        webbrowser.open_new_tab(load_file(r"html_files\page.html"))
+        if is_first_report:
+            webbrowser.open_new_tab(load_file(rf"html_files\{exp}.html"))
 
 
 def find_peptide_in_protein_seq() -> None:
@@ -444,7 +468,12 @@ def find_peptide_in_protein_seq() -> None:
     )
     amount_list = sorted(amount, key=amount.get, reverse=True)  # type: ignore
     all_possible_experiment_type = {x["Experiment"] for x in result}
+    experiments_type = {EXPERIMENT_PATTERN.search(x["Experiment"]).group(1) for x in result}
+    experiments_type = list(experiments_type)
+    experiments_type.sort()
+    experiments_type.append("All_Experiment")
     colors = create_color_bar_image(amount, amount_list)
+    is_first_report = True
     create_html_report(
         result,
         ref_seq_fasta,
@@ -452,7 +481,28 @@ def find_peptide_in_protein_seq() -> None:
         amount_list,
         all_possible_experiment_type,
         colors,
+        "All_Experiment",
+        is_first_report,
+        experiments_type
     )
+    is_first_report = False
+    for exp in experiments_type[:-1]:
+        tmp_result = []
+        for x in result:
+            if re.match(exp, x["Experiment"]):
+                tmp_result.append(x)
+        create_html_report(
+            tmp_result,
+            ref_seq_fasta,
+            amount,
+            amount_list,
+            all_possible_experiment_type,
+            colors,
+            exp,
+            is_first_report,
+            experiments_type
+        )
+        #is_first_report = False
 
 
 # GUI
