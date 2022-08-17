@@ -17,7 +17,7 @@ import os
 # flake8: noqa E203
 LINE_LENGTH_DISPLAYED = 80
 SIZE_OF_THE_TOP_SPACE_BETWEEN_THE_LINES = 4
-LEFT_TEXT_OFFSET = 33
+LEFT_TEXT_OFFSET = 3
 UNIQUE_PATTERN = re.compile(r".*Unique: (.*)\n.*")
 EXPERIMENT_PATTERN = re.compile(r"(.*_\D*)")
 
@@ -310,16 +310,20 @@ def add_next_line_of_protein_sequence(
     """
     # TODO: possible bug
     current_max_height = max(
-        config["peptides_already_displayed"].values(), default=-SIZE_OF_THE_TOP_SPACE_BETWEEN_THE_LINES
+        config["peptides_already_displayed"].values(),
+        default=-SIZE_OF_THE_TOP_SPACE_BETWEEN_THE_LINES,
     )
     if current_max_height <= config["protein_line_height"]:
-        current_max_height = config["protein_line_height"] + SIZE_OF_THE_TOP_SPACE_BETWEEN_THE_LINES
+        current_max_height = (
+            config["protein_line_height"]
+            + SIZE_OF_THE_TOP_SPACE_BETWEEN_THE_LINES
+        )
     else:
         current_max_height += SIZE_OF_THE_TOP_SPACE_BETWEEN_THE_LINES
 
     span_tag = soup.new_tag("span")
     span_tag["style"] = (
-        f"color: white;"
+        f"color: #EEEEEE;"
         f" left: {LEFT_TEXT_OFFSET}ch;"
         f" top: {current_max_height}ch"
     )
@@ -338,11 +342,28 @@ def add_next_line_of_protein_sequence(
     config["protein_line_height"] = current_max_height
 
 
-def create_right_panel_menu(soup, experiment):
+def create_right_panel_menu(
+    soup: bs4.BeautifulSoup, experiment: List[str], current: str
+) -> None:
+    """
+    Create right panel with links to other page result.
+
+    :param soup: html page handler
+    :param experiment: list of experiments
+    :param current: actual experiment name page
+    :return:
+    """
     list_panel = soup.find("ul")
     for x in experiment:
         li_tag = soup.new_tag("li")
-        a_tag = soup.new_tag("a", href=f"{x}.html")
+        if x == current:
+            a_tag = soup.new_tag(
+                "a",
+                href=f"{x}.html",
+                style="text-decoration: underline; text-underline-offset: 5px; text-decoration-color:blue",
+            )
+        else:
+            a_tag = soup.new_tag("a", href=f"{x}.html")
         a_tag.string = x
         li_tag.append(a_tag)
         list_panel.append(li_tag)
@@ -357,7 +378,7 @@ def create_html_report(
     colors: List[colour.Color],
     exp: str,
     is_first_report: bool,
-    exp_type: Set[str]
+    exp_type: List[str],
 ) -> None:
     """
     Create html report.
@@ -381,7 +402,7 @@ def create_html_report(
         "div_center": soup.find("div", {"class": "center"}),
     }
     soup.title.string = exp
-    create_right_panel_menu(soup, exp_type)
+    create_right_panel_menu(soup, exp_type, exp)
     add_next_line_of_protein_sequence(soup, ref_seq_fasta, display_config)
     current_seq = ""
     for peptide in result:
@@ -439,10 +460,11 @@ def create_html_report(
             display_config,
         )
 
-    while len(ref_seq_fasta) > display_config["current_first_index_of_protein_sequence"]:
-        add_next_line_of_protein_sequence(
-            soup, ref_seq_fasta, display_config
-        )
+    while (
+        len(ref_seq_fasta)
+        > display_config["current_first_index_of_protein_sequence"]
+    ):
+        add_next_line_of_protein_sequence(soup, ref_seq_fasta, display_config)
     # save changes to page.html and display page with result
     with open(load_file(rf"html_files\{exp}.html"), "w") as page:
         page.write(
@@ -452,6 +474,7 @@ def create_html_report(
             webbrowser.open_new_tab(load_file(rf"html_files\{exp}.html"))
 
 
+@typing.no_type_check
 def find_peptide_in_protein_seq() -> None:
     """
     Find position of peptide in protein sequence.
@@ -468,9 +491,11 @@ def find_peptide_in_protein_seq() -> None:
     )
     amount_list = sorted(amount, key=amount.get, reverse=True)  # type: ignore
     all_possible_experiment_type = {x["Experiment"] for x in result}
-    experiments_type = {EXPERIMENT_PATTERN.search(x["Experiment"]).group(1) for x in result}
-    experiments_type = list(experiments_type)
-    experiments_type.sort()
+    experiments_type = {
+        EXPERIMENT_PATTERN.search(x["Experiment"]).group(1) for x in result
+    }
+    experiments_type = list(experiments_type)  # type: ignore
+    experiments_type.sort()  # type: ignore
     experiments_type.append("All_Experiment")
     colors = create_color_bar_image(amount, amount_list)
     is_first_report = True
@@ -483,7 +508,7 @@ def find_peptide_in_protein_seq() -> None:
         colors,
         "All_Experiment",
         is_first_report,
-        experiments_type
+        experiments_type,
     )
     is_first_report = False
     for exp in experiments_type[:-1]:
@@ -500,9 +525,8 @@ def find_peptide_in_protein_seq() -> None:
             colors,
             exp,
             is_first_report,
-            experiments_type
+            experiments_type,
         )
-        #is_first_report = False
 
 
 # GUI
