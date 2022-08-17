@@ -13,7 +13,6 @@ import matplotlib.pyplot as plt  # type: ignore
 import matplotlib as mpl  # type: ignore
 import re
 import os
-from PIL import Image
 
 # flake8: noqa E203
 LINE_LENGTH_DISPLAYED = 80
@@ -481,7 +480,7 @@ def browse(entry: tk.Entry) -> None:
 
 root = tk.Window(themename="darkly")
 root.title("SMARCA5")
-root.wm_iconbitmap(load_file(r'icons\protein_app.ico'))
+root.wm_iconbitmap(load_file(r"icons\protein_app.ico"))
 
 
 title_label = tk.Label(root, text="Peptide position finder in protein")
