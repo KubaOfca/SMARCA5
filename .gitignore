@@ -173,3 +173,6 @@ dmypy.json
 # .idea/modules
 # *.iml
 # *.ipr
+
+# Local dir
+pliki-SMARCA5/
