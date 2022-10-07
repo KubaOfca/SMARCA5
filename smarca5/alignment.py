@@ -63,5 +63,5 @@ class Alignment:
                 else:
                     i += 1
         print(self.peptides_metadata)
-        #self.peptides_metadata.sort(key=lambda x: x["Coords"])
-
+        self.peptides_metadata = self.peptides_metadata.sort_values("Coords")
+        print(self.peptides_metadata)
