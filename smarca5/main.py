@@ -21,7 +21,6 @@ LINE_LENGTH_DISPLAYED = 80
 SIZE_OF_THE_TOP_SPACE_BETWEEN_THE_LINES = 3
 LEFT_TEXT_OFFSET = 3
 UNIQUE_PATTERN = re.compile(r".*Unique: (.*)\n.*")
-EXPERIMENT_PATTERN = re.compile(r"(.*_\D*)")
 
 
 def load_file(file_name: str) -> str:
@@ -46,76 +45,6 @@ def read_ref_seq_fasta() -> str:
             if line[0] != ">":
                 ref_seq_fasta += line.strip()
     return ref_seq_fasta
-
-
-def create_lps(peptide: str, peptide_len: int) -> list[int]:
-    """
-    Create lps table.
-
-    :param peptide: peptide sequence
-    :param peptide_len: length of peptide sequence
-    :return: list containing integers which store information
-    about length of prefix
-    """
-    lps = [0] * peptide_len
-    prefix_len = 0
-    i = 1
-
-    while i < peptide_len:
-        if peptide[prefix_len] == peptide[i]:
-            prefix_len += 1
-            lps[i] = prefix_len
-            i += 1
-        elif prefix_len != 0:
-            prefix_len = lps[prefix_len - 1]
-        else:
-            lps[i] = 0
-            i += 1
-
-    return lps
-
-
-def search_peptide_in_protein_seq(
-    result_of_experiment: pd.DataFrame,
-    protein_seq: str,
-) -> Tuple[List[pd.Series], Dict[str, int]]:
-    """
-    KMP (Knuth–Morris–Pratt algorithm) for pattern searching.
-
-    :param: result_of_experiment: dataframe with result of experiment
-    :param protein_seq: text where we want to find pattern
-    :return: List[List[pd.Series], Dict[str, int]]
-    """
-    result: List[pd.Series] = []  # coord 0 is first letter in string
-    amount: Dict[str, int] = {}
-    for index, peptide in result_of_experiment.iterrows():
-        n = len(protein_seq)
-        m = len(peptide.Sequence)
-
-        lps = create_lps(peptide.Sequence, m)
-        i = 0
-        j = 0
-
-        while (n - i) >= (m - j):
-            if j == m:
-                coords = (i - j, i)
-                peptide["Coords"] = coords
-                result.append(peptide)
-                if peptide["Sequence"] in amount:
-                    amount[peptide["Sequence"]] += 1
-                else:
-                    amount[peptide["Sequence"]] = 1
-                j = lps[j - 1]
-            elif protein_seq[i] == peptide.Sequence[j]:
-                i += 1
-                j += 1
-            elif j > 0:
-                j = lps[j - 1]
-            else:
-                i += 1
-
-    result.sort(key=lambda x: x["Coords"])
-    return result, amount
 
 
 def create_table_of_information_about_peptide(
@@ -470,28 +399,22 @@ def find_peptide_in_protein_seq() -> None:
     """
     global LINE_LENGTH_DISPLAYED
     LINE_LENGTH_DISPLAYED = int(spin_box.get())
-    ref_seq_fasta = read_ref_seq_fasta()
-    result_of_experiment = pd.read_excel(rf"{peptide_entry.get()}").loc[
+    protein_fasta = read_ref_seq_fasta()
+    peptides_dataframe = pd.read_excel(rf"{peptide_entry.get()}").loc[
         :, ["Sequence", "Proteins", "Experiment"]
     ]
-    result_of_experiment["Coords"] = ""
-    al = alignment.Alignment(protein_seq=ref_seq_fasta, peptides_metadata=result_of_experiment)
-    al.search_peptide_in_protein_seq()
-    return
-    result, amount = search_peptide_in_protein_seq(result_of_experiment, ref_seq_fasta)
-    amount_list = sorted(amount, key=amount.get, reverse=True)  # type: ignore
-    all_possible_experiment_type = {x["Experiment"] for x in result}
-    experiments_type = {
-        EXPERIMENT_PATTERN.search(x["Experiment"]).group(1) for x in result
-    }
-    experiments_type = list(experiments_type)  # type: ignore
-    experiments_type.sort()  # type: ignore
-    experiments_type.append("All_Experiment")
-    colors = create_color_bar_image(amount, amount_list)
+    peptides_dataframe["Coords"] = ""
+
+    alignment_obj = alignment.Alignment(protein_seq=protein_fasta, peptides_metadata=peptides_dataframe)
+    alignment_obj.search_peptide_in_protein_seq()
+
+    # this should be a part of html report
+    colors = create_color_bar_image(alignment_obj.amount_of_the_same_peptides,
+                                    alignment_obj.list_of_peptides_from_max_amount_to_min)
     is_first_report = True
     create_html_report(
         result,
-        ref_seq_fasta,
+        protein_fasta,
         amount,
         amount_list,
         all_possible_experiment_type,
@@ -508,7 +431,7 @@ def find_peptide_in_protein_seq() -> None:
                 tmp_result.append(x)
         create_html_report(
             tmp_result,
-            ref_seq_fasta,
+            protein_fasta,
             amount,
             amount_list,
             all_possible_experiment_type,
