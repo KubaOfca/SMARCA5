@@ -14,9 +14,11 @@ import matplotlib as mpl  # type: ignore
 import re
 import os
 
+import alignment
+
 # flake8: noqa E203
 LINE_LENGTH_DISPLAYED = 80
-SIZE_OF_THE_TOP_SPACE_BETWEEN_THE_LINES = 4
+SIZE_OF_THE_TOP_SPACE_BETWEEN_THE_LINES = 3
 LEFT_TEXT_OFFSET = 3
 UNIQUE_PATTERN = re.compile(r".*Unique: (.*)\n.*")
 EXPERIMENT_PATTERN = re.compile(r"(.*_\D*)")
@@ -26,7 +28,7 @@ def load_file(file_name: str) -> str:
     """
     Load file in correct format for creating exe one-file.
 
-    :param file_name: filename to load
+    :param: file_name: filename to load
     :return: str of correct path to file
     """
     return os.path.join(os.path.dirname(__file__), file_name)
@@ -80,7 +82,7 @@ def search_peptide_in_protein_seq(
     """
     KMP (Knuth–Morris–Pratt algorithm) for pattern searching.
 
-    :param result_of_experiment: dataframe with result of experiment
+    :param: result_of_experiment: dataframe with result of experiment
     :param protein_seq: text where we want to find pattern
     :return: List[List[pd.Series], Dict[str, int]]
     """
@@ -172,9 +174,8 @@ def create_color_bar_image(
     :param amount_list: peptide sequence list in descending order
     :return: list of colors used in color bar
     """
-    red = Color("red")
-    colors = list(red.range_to(Color("pink"), len(amount)))
-
+    red = Color("blue")
+    colors = list(red.range_to(Color("green"), len(amount)))
     fig, ax = plt.subplots(figsize=(1, 4))
     fig.subplots_adjust(right=0.5)
 
@@ -206,9 +207,7 @@ def search_peptide_height(
     :param config: configuration of html properties
     :return: height of peptide (top parameter in html)
     """
-    max_height = (
-        config["protein_line_height"] + SIZE_OF_THE_TOP_SPACE_BETWEEN_THE_LINES
-    )
+    max_height = config["protein_line_height"] + SIZE_OF_THE_TOP_SPACE_BETWEEN_THE_LINES
     x, y = peptide["Coords"]
     for key, value in config["peptides_already_displayed"].items():
         if key[0] >= y or key[1] > x:
@@ -264,10 +263,8 @@ def add_peptide_on_html_page(
     config["div_center"].append(span_tag)
 
     if (
-        peptide["Coords"][0]
-        < config["current_first_index_of_protein_sequence"]
-        and config["current_first_index_of_protein_sequence"]
-        < peptide["Coords"][1]
+        peptide["Coords"][0] < config["current_first_index_of_protein_sequence"]
+        and config["current_first_index_of_protein_sequence"] < peptide["Coords"][1]
     ):
         span_tag.append(
             soup.new_string(
@@ -315,8 +312,7 @@ def add_next_line_of_protein_sequence(
     )
     if current_max_height <= config["protein_line_height"]:
         current_max_height = (
-            config["protein_line_height"]
-            + SIZE_OF_THE_TOP_SPACE_BETWEEN_THE_LINES
+            config["protein_line_height"] + SIZE_OF_THE_TOP_SPACE_BETWEEN_THE_LINES
         )
     else:
         current_max_height += SIZE_OF_THE_TOP_SPACE_BETWEEN_THE_LINES
@@ -411,13 +407,9 @@ def create_html_report(
             peptide["Coords"][0]
             >= display_config["current_first_index_of_protein_sequence"]
         ):
-            add_next_line_of_protein_sequence(
-                soup, ref_seq_fasta, display_config
-            )
+            add_next_line_of_protein_sequence(soup, ref_seq_fasta, display_config)
 
-            for element_to_transfer in display_config[
-                "list_of_element_to_transfer"
-            ]:
+            for element_to_transfer in display_config["list_of_element_to_transfer"]:
                 transfer_peptide_info = {
                     "Sequence": element_to_transfer[1],
                     "Coords": element_to_transfer[0],
@@ -442,9 +434,7 @@ def create_html_report(
             peptide["Coords"][0]
             > display_config["current_first_index_of_protein_sequence"]
         ):
-            add_next_line_of_protein_sequence(
-                soup, ref_seq_fasta, display_config
-            )
+            add_next_line_of_protein_sequence(soup, ref_seq_fasta, display_config)
 
         current_seq = peptide["Sequence"]
         tooltip_text = create_table_of_information_about_peptide(
@@ -461,19 +451,16 @@ def create_html_report(
         )
 
     while (
-        len(ref_seq_fasta)
-        > display_config["current_first_index_of_protein_sequence"]
+        len(ref_seq_fasta) > display_config["current_first_index_of_protein_sequence"]
     ):
         add_next_line_of_protein_sequence(soup, ref_seq_fasta, display_config)
     # save changes to page.html and display page with result
     with open(load_file(rf"html_files\{exp}.html"), "w") as page:
-        page.write(
-            soup.prettify(formatter="html")
-        )  # soup.encode(formatter="html")
+        page.write(soup.prettify(formatter="html"))  # soup.encode(formatter="html")
         if is_first_report:
             webbrowser.open_new_tab(load_file(rf"html_files\{exp}.html"))
 
-
+# Main function - program start
 @typing.no_type_check
 def find_peptide_in_protein_seq() -> None:
     """
@@ -487,10 +474,11 @@ def find_peptide_in_protein_seq() -> None:
     result_of_experiment = pd.read_excel(rf"{peptide_entry.get()}").loc[
         :, ["Sequence", "Proteins", "Experiment"]
     ]
-
-    result, amount = search_peptide_in_protein_seq(
-        result_of_experiment, ref_seq_fasta
-    )
+    result_of_experiment["Coords"] = ""
+    al = alignment.Alignment(protein_seq=ref_seq_fasta, peptides_metadata=result_of_experiment)
+    al.search_peptide_in_protein_seq()
+    return
+    result, amount = search_peptide_in_protein_seq(result_of_experiment, ref_seq_fasta)
     amount_list = sorted(amount, key=amount.get, reverse=True)  # type: ignore
     all_possible_experiment_type = {x["Experiment"] for x in result}
     experiments_type = {
@@ -567,9 +555,7 @@ protein_entry = tk.Entry(protein_ref_frame, width=80)
 protein_browse_button = tk.Button(
     protein_ref_frame, text="Browse", command=lambda: browse(protein_entry)
 )
-peptide_frame = tk.LabelFrame(
-    root, text="Select path of peptide sequence file"
-)
+peptide_frame = tk.LabelFrame(root, text="Select path of peptide sequence file")
 peptide_entry = tk.Entry(peptide_frame, width=80)
 peptide_browse_button = tk.Button(
     peptide_frame, text="Browse", command=lambda: browse(peptide_entry)
@@ -598,5 +584,4 @@ button_frame.pack(padx=20, pady=20)
 sping_box_label.grid(row=0, column=0, padx=10, pady=20)
 spin_box.grid(row=0, column=1, padx=10, pady=20)
 analyze_button.grid(row=1, column=0, columnspan=2, padx=20, pady=20)
-
 root.mainloop()
