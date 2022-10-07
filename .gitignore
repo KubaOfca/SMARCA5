@@ -176,3 +176,5 @@ dmypy.json
 
 # Local dir
 pliki-SMARCA5/
+smarca5/html_files
+command_to_run_exe_build.txt
