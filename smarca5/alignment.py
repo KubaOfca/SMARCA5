@@ -28,15 +28,14 @@ class Alignment:
         for index, peptide in self.peptides_metadata.iterrows():
             peptide_seq_len = len(peptide.Sequence)
 
-            lps = self.create_lps(peptide.Sequence, peptide_seq_len)
+            lps = create_lps(peptide.Sequence, peptide_seq_len)
             i = 0
             j = 0
 
             while (protein_seq_len - i) >= (peptide_seq_len - j):
                 if j == peptide_seq_len:
-                    coords = (i - j, i)
-                    # TODO: think about name, maybe start and end position or maybe only start and in program add lenght to it?
-                    peptide["Coords"] = coords
+                    peptide["Start"] = i - j
+                    peptide["End"] = i  # TODO: -1 is correct ? check it
                     if peptide["Sequence"] in self.amount_of_the_same_peptides:
                         self.amount_of_the_same_peptides[peptide["Sequence"]] += 1
                     else:
@@ -49,7 +48,7 @@ class Alignment:
                     j = lps[j - 1]
                 else:
                     i += 1
-        self.peptides_metadata = self.peptides_metadata.sort_values("Coords")
+        self.peptides_metadata = self.peptides_metadata.sort_values("Start")
         self.list_of_peptides_from_max_amount_to_min = sorted(
             self.amount_of_the_same_peptides,
             key=self.amount_of_the_same_peptides.get,
