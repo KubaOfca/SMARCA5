@@ -81,11 +81,7 @@ def find_peptide_in_protein_seq() -> None:
                                                 )
 
     for index, sample in enumerate(alignment_obj.sample_names):
-        print(sample)
-        # if re.match(group, x["Experiment"]):
-        #     tmp_result.append(x)
         peptides_metadata_filtered_by_sample = alignment_obj.peptides_metadata.loc[alignment_obj.peptides_metadata['Experiment'] == sample]
-        #pd.set_option('display.max_columns', None)
         page = html_page.ReportPage(html_report_config, sample, peptides_metadata_filtered_by_sample, alignment_obj)
         page.fill_alignment_window()
         page.color_bar_fig.savefig(load_file(rf"html_files\Amount_of_peptide-sample_{sample}.png"))
@@ -96,6 +92,25 @@ def find_peptide_in_protein_seq() -> None:
             page_to_save.write(page.soup.prettify(formatter="html"))  # soup.encode(formatter="html")
             if index == 0:
                 webbrowser.open_new_tab(load_file(rf"html_files\{sample}.html"))
+
+    for index, group in enumerate(alignment_obj.group_names):
+        if group != "All":
+            peptides_metadata_filtered_by_sample = alignment_obj.peptides_metadata.loc[alignment_obj.peptides_metadata.iloc[:,2].str.contains(rf'{group}')]
+            print("TEST")
+            print(peptides_metadata_filtered_by_sample)
+            print(alignment_obj.peptides_metadata.iloc[:,2])
+        else:
+            peptides_metadata_filtered_by_sample = alignment_obj.peptides_metadata
+        page = html_page.ReportPage(html_report_config, group, peptides_metadata_filtered_by_sample, alignment_obj)
+        page.fill_alignment_window()
+        page.color_bar_fig.savefig(load_file(rf"html_files\Amount_of_peptide-sample_{group}.png"))
+        img_tag = page.soup.find("img")
+        img_tag["src"] = f"Amount_of_peptide-sample_{group}.png"
+        # save changes to page.html and display page with result!!!!!! MANAGE BY MAIN!!!!!!!!
+        with open(load_file(rf"html_files\{group}.html"), "w") as page_to_save:
+            page_to_save.write(page.soup.prettify(formatter="html"))  # soup.encode(formatter="html")
+            if index == 0:
+                webbrowser.open_new_tab(load_file(rf"html_files\{group}.html"))
 # GUI
 def browse(entry: tk.Entry) -> None:
     """
