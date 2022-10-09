@@ -23,7 +23,10 @@ class HtmlReport:
         ul_tag = self.base_soup.find("ul", {"id": f"{menu_type}"})
         for element_name in menu_elements:
             li_tag = self.base_soup.new_tag("li")
-            a_tag = self.base_soup.new_tag("a", href=f"{element_name}.html")
+            if menu_type == "Groups":
+                a_tag = self.base_soup.new_tag("a", href=f"type_group-{element_name}.html")
+            else:
+                a_tag = self.base_soup.new_tag("a", href=f"type_sample-{element_name}.html")
             a_tag.string = element_name
             li_tag.append(a_tag)
             ul_tag.append(li_tag)

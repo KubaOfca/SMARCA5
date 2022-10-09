@@ -17,11 +17,17 @@ import os
 import alignment
 import html_report
 import html_page
+
 # flake8: noqa E203
 LINE_LENGTH_DISPLAYED = 80
 SIZE_OF_THE_TOP_SPACE_BETWEEN_THE_LINES = 3
 LEFT_TEXT_OFFSET = 3
 UNIQUE_PATTERN = re.compile(r".*Unique: (.*)\n.*")
+
+
+# TODO: Better name convention of .html files
+# TODO: function to handle operations from 86line
+# TODO: GUI as class
 
 
 def load_file(file_name: str) -> str:
@@ -47,7 +53,27 @@ def read_ref_seq_fasta() -> str:
                 ref_seq_fasta += line.strip()
     return ref_seq_fasta
 
+
 # Main function - program start
+def generate_alignment_report(dataset, type_of_experiment, alignment_obj, html_report_config):
+    for index, experiment in enumerate(dataset):
+        if experiment != "All":
+            peptides_metadata_filtered_by_experiment = alignment_obj.peptides_metadata.loc[
+                alignment_obj.peptides_metadata.loc[:, "Experiment"].str.contains(rf'{experiment}')]
+        else:
+            peptides_metadata_filtered_by_experiment = alignment_obj.peptides_metadata
+
+        page = html_page.ReportPage(html_report_config, type_of_experiment, experiment,
+                                    peptides_metadata_filtered_by_experiment, alignment_obj)
+        page.fill_alignment_window()
+        page.color_bar_fig.savefig(
+            load_file(rf"html_files\Amount_of_peptide-type_{type_of_experiment}-{experiment}.png"))
+        img_tag = page.soup.find("img")
+        img_tag["src"] = f"Amount_of_peptide-type_{type_of_experiment}-{experiment}.png"
+        with open(load_file(rf"html_files\type_{type_of_experiment}-{experiment}.html"), "w") as page_to_save:
+            page_to_save.write(page.soup.prettify(formatter="html"))  # soup.encode(formatter="html")
+
+
 @typing.no_type_check
 def find_peptide_in_protein_seq() -> None:
     """
@@ -59,19 +85,18 @@ def find_peptide_in_protein_seq() -> None:
     LINE_LENGTH_DISPLAYED = int(spin_box.get())
     protein_fasta = read_ref_seq_fasta()
     peptides_dataframe = pd.read_excel(rf"{peptide_entry.get()}").loc[
-        :, ["Sequence", "Proteins", "Experiment"]
-    ]
+                         :, ["Sequence", "Proteins", "Experiment"]
+                         ]
     peptides_dataframe["Start"] = ""
     peptides_dataframe["End"] = ""
 
     alignment_obj = alignment.Alignment(protein_seq=protein_fasta, peptides_metadata=peptides_dataframe)
     alignment_obj.search_peptide_in_protein_seq()
-    # this should be a part of html report
-    # colors = create_color_bar_image(alignment_obj.amount_of_the_same_peptides,
-    #                                 alignment_obj.list_of_peptides_from_max_amount_to_min)
+
     with open(load_file(r"html_files\index.html"), "r") as html:
         soup = BeautifulSoup(html, "html.parser")
 
+    # config global options of report like interline, offset ect.
     html_report_config = html_report.HtmlReport(soup,
                                                 alignment_obj.group_names,
                                                 alignment_obj.sample_names,
@@ -80,37 +105,12 @@ def find_peptide_in_protein_seq() -> None:
                                                 LINE_LENGTH_DISPLAYED
                                                 )
 
-    for index, sample in enumerate(alignment_obj.sample_names):
-        peptides_metadata_filtered_by_sample = alignment_obj.peptides_metadata.loc[alignment_obj.peptides_metadata['Experiment'] == sample]
-        page = html_page.ReportPage(html_report_config, sample, peptides_metadata_filtered_by_sample, alignment_obj)
-        page.fill_alignment_window()
-        page.color_bar_fig.savefig(load_file(rf"html_files\Amount_of_peptide-sample_{sample}.png"))
-        img_tag = page.soup.find("img")
-        img_tag["src"] = f"Amount_of_peptide-sample_{sample}.png"
-        # save changes to page.html and display page with result!!!!!! MANAGE BY MAIN!!!!!!!!
-        with open(load_file(rf"html_files\{sample}.html"), "w") as page_to_save:
-            page_to_save.write(page.soup.prettify(formatter="html"))  # soup.encode(formatter="html")
-            if index == 0:
-                webbrowser.open_new_tab(load_file(rf"html_files\{sample}.html"))
+    # generate individual reports divided by groups or samples of experiment
+    generate_alignment_report(alignment_obj.group_names, "group", alignment_obj, html_report_config)
+    generate_alignment_report(alignment_obj.sample_names, "sample", alignment_obj, html_report_config)
+    # open one tab (type All)
+    webbrowser.open_new_tab(load_file(rf"html_files\type_group-All.html"))
 
-    for index, group in enumerate(alignment_obj.group_names):
-        if group != "All":
-            peptides_metadata_filtered_by_sample = alignment_obj.peptides_metadata.loc[alignment_obj.peptides_metadata.iloc[:,2].str.contains(rf'{group}')]
-            print("TEST")
-            print(peptides_metadata_filtered_by_sample)
-            print(alignment_obj.peptides_metadata.iloc[:,2])
-        else:
-            peptides_metadata_filtered_by_sample = alignment_obj.peptides_metadata
-        page = html_page.ReportPage(html_report_config, group, peptides_metadata_filtered_by_sample, alignment_obj)
-        page.fill_alignment_window()
-        page.color_bar_fig.savefig(load_file(rf"html_files\Amount_of_peptide-sample_{group}.png"))
-        img_tag = page.soup.find("img")
-        img_tag["src"] = f"Amount_of_peptide-sample_{group}.png"
-        # save changes to page.html and display page with result!!!!!! MANAGE BY MAIN!!!!!!!!
-        with open(load_file(rf"html_files\{group}.html"), "w") as page_to_save:
-            page_to_save.write(page.soup.prettify(formatter="html"))  # soup.encode(formatter="html")
-            if index == 0:
-                webbrowser.open_new_tab(load_file(rf"html_files\{group}.html"))
 # GUI
 def browse(entry: tk.Entry) -> None:
     """
@@ -137,7 +137,6 @@ def browse(entry: tk.Entry) -> None:
 root = tk.Window(themename="darkly")
 root.title("SMARCA5")
 root.wm_iconbitmap(load_file(r"icons\protein_app.ico"))
-
 
 title_label = tk.Label(root, text="Peptide position finder in protein")
 protein_ref_frame = tk.LabelFrame(

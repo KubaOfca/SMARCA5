@@ -7,10 +7,10 @@ import matplotlib as mpl  # type: ignore
 import re
 
 UNIQUE_PATTERN = re.compile(r".*Unique: (.*)\n.*")
-
+UNDERLINE_MENU_STYLE = "text-decoration: underline; text-underline-offset: 5px; text-decoration-color:red"
 
 class ReportPage:
-    def __init__(self, html_report_config, experiment, peptides_from_given_experiment, alignment_obj):
+    def __init__(self, html_report_config, type_of_experiment,experiment, peptides_from_given_experiment, alignment_obj):
         self.soup = deepcopy(html_report_config.base_soup)
         self.number_of_amino_acids_already_display = 0
         self.first_empty_line_height = 0  # first empty line under already created alignment
@@ -18,12 +18,18 @@ class ReportPage:
         self.df_of_peptides_to_transfer = pd.DataFrame(columns=["Sequence", "FullSequence", "Proteins", "Experiment", "Start", "End"])
         self.div_center = self.soup.find("div", {"class": "center"})
         self.soup.title.string = experiment
+        self.type_of_experiment = type_of_experiment
         self.peptides_from_given_experiment = peptides_from_given_experiment
         self.alignment_obj = alignment_obj
         self.color_bar_fig = None
         self.html_report_config = html_report_config
         self.amount_of_peptides = self.count_amount_of_the_same_peptides()
         self.color_mapped_with_amount = self.create_color_bar_image()
+        self.add_underline_to_menu_element_of_current_experiment()
+
+    def add_underline_to_menu_element_of_current_experiment(self):
+        a_tag = self.soup.find("a", {"href": {f"type_{self.type_of_experiment}-{self.soup.title.string}.html"}})
+        a_tag["style"] = UNDERLINE_MENU_STYLE
 
     def fill_alignment_window(self):
         number_of_protein_lines = ceil(len(self.alignment_obj.protein_seq) / self.html_report_config.line_length)
