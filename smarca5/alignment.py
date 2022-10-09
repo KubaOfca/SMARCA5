@@ -1,22 +1,31 @@
+"""Alignment class."""
 import re
 
 GROUP_PATTERN = re.compile(r"(.*_\D*)")
 
 
 class Alignment:
+
     def __init__(self, protein_seq, peptides_metadata):
         self.protein_seq = protein_seq
         self.peptides_metadata = peptides_metadata
         self.amount_of_the_same_peptides = {}
         self.list_of_peptides_from_max_amount_to_min = []
-        self.sample_names = self.peptides_metadata["Experiment"].unique().tolist()
+        self.sample_names = (
+            self.peptides_metadata["Experiment"].unique().tolist()
+        )
         self.sample_names.sort()
         self.group_names = self.find_group_names()
         self.group_names.sort()
         self.group_names.insert(0, "All")
 
     def find_group_names(self):
-        return list({GROUP_PATTERN.search(sample_name).group(1) for sample_name in self.sample_names})
+        return list(
+            {
+                GROUP_PATTERN.search(sample_name).group(1)
+                for sample_name in self.sample_names
+            }
+        )
 
     def search_peptide_in_protein_seq(self) -> None:
         """
@@ -37,9 +46,13 @@ class Alignment:
                     peptide["Start"] = i - j
                     peptide["End"] = i  # TODO: -1 is correct ? check it
                     if peptide["Sequence"] in self.amount_of_the_same_peptides:
-                        self.amount_of_the_same_peptides[peptide["Sequence"]] += 1
+                        self.amount_of_the_same_peptides[
+                            peptide["Sequence"]
+                        ] += 1
                     else:
-                        self.amount_of_the_same_peptides[peptide["Sequence"]] = 1
+                        self.amount_of_the_same_peptides[
+                            peptide["Sequence"]
+                        ] = 1
                     j = lps[j - 1]
                 elif self.protein_seq[i] == peptide.Sequence[j]:
                     i += 1

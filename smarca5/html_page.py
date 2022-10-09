@@ -9,13 +9,32 @@ import re
 UNIQUE_PATTERN = re.compile(r".*Unique: (.*)\n.*")
 UNDERLINE_MENU_STYLE = "text-decoration: underline; text-underline-offset: 5px; text-decoration-color:red"
 
+
 class ReportPage:
-    def __init__(self, html_report_config, type_of_experiment,experiment, peptides_from_given_experiment, alignment_obj):
+    def __init__(
+        self,
+        html_report_config,
+        type_of_experiment,
+        experiment,
+        peptides_from_given_experiment,
+        alignment_obj,
+    ):
         self.soup = deepcopy(html_report_config.base_soup)
         self.number_of_amino_acids_already_display = 0
-        self.first_empty_line_height = 0  # first empty line under already created alignment
+        self.first_empty_line_height = (
+            0  # first empty line under already created alignment
+        )
         self.peptides_already_displayed_info = {}
-        self.df_of_peptides_to_transfer = pd.DataFrame(columns=["Sequence", "FullSequence", "Proteins", "Experiment", "Start", "End"])
+        self.df_of_peptides_to_transfer = pd.DataFrame(
+            columns=[
+                "Sequence",
+                "FullSequence",
+                "Proteins",
+                "Experiment",
+                "Start",
+                "End",
+            ]
+        )
         self.div_center = self.soup.find("div", {"class": "center"})
         self.soup.title.string = experiment
         self.type_of_experiment = type_of_experiment
@@ -28,11 +47,21 @@ class ReportPage:
         self.add_underline_to_menu_element_of_current_experiment()
 
     def add_underline_to_menu_element_of_current_experiment(self):
-        a_tag = self.soup.find("a", {"href": {f"type_{self.type_of_experiment}-{self.soup.title.string}.html"}})
+        a_tag = self.soup.find(
+            "a",
+            {
+                "href": {
+                    f"type_{self.type_of_experiment}-{self.soup.title.string}.html"
+                }
+            },
+        )
         a_tag["style"] = UNDERLINE_MENU_STYLE
 
     def fill_alignment_window(self):
-        number_of_protein_lines = ceil(len(self.alignment_obj.protein_seq) / self.html_report_config.line_length)
+        number_of_protein_lines = ceil(
+            len(self.alignment_obj.protein_seq)
+            / self.html_report_config.line_length
+        )
         for _ in range(number_of_protein_lines):
             self.add_next_segment_of_alignment()
 
@@ -45,50 +74,91 @@ class ReportPage:
         span_tag["style"] = (
             f"color: #EEEEEE;"
             f" left: {self.html_report_config.text_left_offset}ch;"
-            f" top: {self.first_empty_line_height}ch"
+            f" top: {self.first_empty_line_height}px"
         )
-        span_tag.append(self.soup.new_string(
-            self.alignment_obj.protein_seq[
-            self.number_of_amino_acids_already_display:
-            self.number_of_amino_acids_already_display + self.html_report_config.line_length
-            ]))
-        self.number_of_amino_acids_already_display += self.html_report_config.line_length
+        span_tag.append(
+            self.soup.new_string(
+                self.alignment_obj.protein_seq[
+                    self.number_of_amino_acids_already_display : self.number_of_amino_acids_already_display
+                    + self.html_report_config.line_length
+                ]
+            )
+        )
+        self.number_of_amino_acids_already_display += (
+            self.html_report_config.line_length
+        )
         self.first_empty_line_height += self.html_report_config.interline
         self.div_center.append(span_tag)
 
     def add_next_peptides_line(self):
         # there should be a function
         # TODO: list of element to transfer should look the same as peptide
-        for index, peptide_to_transfer in self.df_of_peptides_to_transfer.iterrows():
+        for (
+            index,
+            peptide_to_transfer,
+        ) in self.df_of_peptides_to_transfer.iterrows():
             start = peptide_to_transfer["Start"]
             end = peptide_to_transfer["End"]
-            current_peptide_height = self.search_peptide_height(start, end, peptide_to_transfer["FullSequence"])
+            current_peptide_height = self.search_peptide_height(
+                start, end, peptide_to_transfer["FullSequence"]
+            )
             # prepare info ect. about peptide
-            peptide_span_tag = self.create_span_tag_of_peptide(peptide_to_transfer, current_peptide_height, True)
+            peptide_span_tag = self.create_span_tag_of_peptide(
+                peptide_to_transfer, current_peptide_height, True
+            )
             self.div_center.append(peptide_span_tag)
 
-        self.df_of_peptides_to_transfer = pd.DataFrame(columns=["Sequence", "FullSequence", "Proteins", "Experiment", "Start", "End"])
+        self.df_of_peptides_to_transfer = pd.DataFrame(
+            columns=[
+                "Sequence",
+                "FullSequence",
+                "Proteins",
+                "Experiment",
+                "Start",
+                "End",
+            ]
+        )
 
-        peptides_from_a_given_segment = self.peptides_from_given_experiment.loc[
-            (self.peptides_from_given_experiment[
-                 'Start'] >= self.number_of_amino_acids_already_display - self.html_report_config.line_length) & (
-                    self.peptides_from_given_experiment[
-                        'Start'] < self.number_of_amino_acids_already_display)]
+        peptides_from_a_given_segment = (
+            self.peptides_from_given_experiment.loc[
+                (
+                    self.peptides_from_given_experiment["Start"]
+                    >= self.number_of_amino_acids_already_display
+                    - self.html_report_config.line_length
+                )
+                & (
+                    self.peptides_from_given_experiment["Start"]
+                    < self.number_of_amino_acids_already_display
+                )
+            ]
+        )
 
         for index, peptide in peptides_from_a_given_segment.iterrows():
-            if peptide["Sequence"] not in self.peptides_already_displayed_info and \
-                    peptide["Start"] < self.number_of_amino_acids_already_display:
+            if (
+                peptide["Sequence"] not in self.peptides_already_displayed_info
+                and peptide["Start"]
+                < self.number_of_amino_acids_already_display
+            ):
                 start = peptide["Start"]
                 end = peptide["End"]
-                current_peptide_height = self.search_peptide_height(start, end, peptide["Sequence"])
+                current_peptide_height = self.search_peptide_height(
+                    start, end, peptide["Sequence"]
+                )
                 # prepare info ect. about peptide
-                peptide_span_tag = self.create_span_tag_of_peptide(peptide, current_peptide_height)
+                peptide_span_tag = self.create_span_tag_of_peptide(
+                    peptide, current_peptide_height
+                )
                 self.div_center.append(peptide_span_tag)
-        # TODO: if no peptide in line there will be one space between protein. Maybe it will be change later
-        self.first_empty_line_height = max(
-            [height for height, coords in self.peptides_already_displayed_info.values()],
-            default=self.first_empty_line_height
-        ) + self.html_report_config.interline
+        self.first_empty_line_height = (
+            max(
+                [
+                    height
+                    for height, coords in self.peptides_already_displayed_info.values()
+                ],
+                default=self.first_empty_line_height,
+            )
+            + self.html_report_config.interline
+        )
 
         self.peptides_already_displayed_info = {}
 
@@ -99,23 +169,39 @@ class ReportPage:
                 overlay_peptides_height.append(height)
 
         if overlay_peptides_height:
-            current_peptide_height = max(overlay_peptides_height) + self.html_report_config.interline
+            current_peptide_height = (
+                max(overlay_peptides_height)
+                + self.html_report_config.interline
+            )
         else:
             current_peptide_height = self.first_empty_line_height
 
         if end >= self.number_of_amino_acids_already_display:
             end = self.number_of_amino_acids_already_display - 1
-        self.peptides_already_displayed_info[peptide_seq] = [current_peptide_height, (start, end)]
+        self.peptides_already_displayed_info[peptide_seq] = [
+            current_peptide_height,
+            (start, end),
+        ]
         return current_peptide_height
 
-    def create_span_tag_of_peptide(self, peptide, current_peptide_height, is_transfer=False):
+    def create_span_tag_of_peptide(
+        self, peptide, current_peptide_height, is_transfer=False
+    ):
         span_tag = self.soup.new_tag("span")
-        start_position_in_line_of_peptide = peptide["Start"] % self.html_report_config.line_length
+        start_position_in_line_of_peptide = (
+            peptide["Start"] % self.html_report_config.line_length
+        )
         if not is_transfer:
-            peptide_color = self.color_mapped_with_amount[self.amount_of_peptides[peptide["Sequence"]]]
+            peptide_color = self.color_mapped_with_amount[
+                self.amount_of_peptides[peptide["Sequence"]]
+            ]
         else:
-            peptide_color = self.color_mapped_with_amount[self.amount_of_peptides[peptide["FullSequence"]]]
-        tooltip_text = self.create_table_of_information_about_peptide(peptide, is_transfer)
+            peptide_color = self.color_mapped_with_amount[
+                self.amount_of_peptides[peptide["FullSequence"]]
+            ]
+        tooltip_text = self.create_table_of_information_about_peptide(
+            peptide, is_transfer
+        )
         span_tag["title"] = tooltip_text
         unique_bool = UNIQUE_PATTERN.search(tooltip_text)
         if unique_bool.group(1) == "True":
@@ -126,33 +212,51 @@ class ReportPage:
         span_tag["style"] = (
             f"color: {peptide_color};"
             f" left: {start_position_in_line_of_peptide + self.html_report_config.text_left_offset}ch;"
-            f" top: {current_peptide_height}ch;"
+            f" top: {current_peptide_height}px;"
             f" text-decoration: {underline};"
         )
         # seq of peptide displayed if is longer than already displayed protein line
-        if peptide["Start"] < self.number_of_amino_acids_already_display < peptide["End"]:
+        if (
+            peptide["Start"]
+            < self.number_of_amino_acids_already_display
+            < peptide["End"]
+        ):
             peptide_sequence_before_transfer = peptide["Sequence"][
-                                               : self.number_of_amino_acids_already_display - peptide["Start"]]
-            span_tag.append(self.soup.new_string(peptide_sequence_before_transfer))
+                : self.number_of_amino_acids_already_display - peptide["Start"]
+            ]
+            span_tag.append(
+                self.soup.new_string(peptide_sequence_before_transfer)
+            )
 
             # transfer
             peptide_sequence_after_transfer = peptide["Sequence"][
-                                              self.number_of_amino_acids_already_display - peptide["Start"]:]
-            start_coord_after_transfer = self.number_of_amino_acids_already_display
+                self.number_of_amino_acids_already_display - peptide["Start"] :
+            ]
+            start_coord_after_transfer = (
+                self.number_of_amino_acids_already_display
+            )
 
-            peptide_to_transfer_data = pd.DataFrame({"Sequence": [peptide_sequence_after_transfer],
-                                                     "FullSequence": [peptide["Sequence"]],
-                                                     "Proteins": [peptide["Proteins"]],
-                                                     "Experiment": [peptide["Experiment"]],
-                                                     "Start": [start_coord_after_transfer],
-                                                     "End": [peptide["End"]]})
-            self.df_of_peptides_to_transfer = pd.concat([self.df_of_peptides_to_transfer, peptide_to_transfer_data])
+            peptide_to_transfer_data = pd.DataFrame(
+                {
+                    "Sequence": [peptide_sequence_after_transfer],
+                    "FullSequence": [peptide["Sequence"]],
+                    "Proteins": [peptide["Proteins"]],
+                    "Experiment": [peptide["Experiment"]],
+                    "Start": [start_coord_after_transfer],
+                    "End": [peptide["End"]],
+                }
+            )
+            self.df_of_peptides_to_transfer = pd.concat(
+                [self.df_of_peptides_to_transfer, peptide_to_transfer_data]
+            )
         else:
             span_tag.append(self.soup.new_string(peptide["Sequence"]))
 
         return span_tag
 
-    def create_table_of_information_about_peptide(self, current_peptide, is_transfer) -> str:
+    def create_table_of_information_about_peptide(
+        self, current_peptide, is_transfer
+    ) -> str:
         """
         Create tooltip with extra information about peptide.
 
@@ -200,13 +304,17 @@ class ReportPage:
         :return: list of colors used in color bar
         """
         unique_amount_of_peptides = sorted(
-            list({value for value in self.amount_of_peptides.values()}))  # [1, 5, 6, 10...]
+            list({value for value in self.amount_of_peptides.values()})
+        )  # [1, 5, 6, 10...]
         color_map_with_amount = {}
         blue = Color("LightBlue")
-        colors = list(blue.range_to(value=Color("DarkBlue"),
-                                    steps=len(unique_amount_of_peptides)))
+        colors = list(
+            blue.range_to(
+                value=Color("MediumBlue"), steps=len(unique_amount_of_peptides)
+            )
+        )
         if len(colors) == 1:
-            colors.append(Color("DarkBlue"))
+            colors.append(Color("MediumBlue"))
             unique_amount_of_peptides.append(2)
         # blue - min, green - max
         for index, amount in enumerate(unique_amount_of_peptides):
@@ -229,5 +337,7 @@ class ReportPage:
         return color_map_with_amount
 
     def count_amount_of_the_same_peptides(self):
-        amount_of_peptides = dict(self.peptides_from_given_experiment['Sequence'].value_counts())
+        amount_of_peptides = dict(
+            self.peptides_from_given_experiment["Sequence"].value_counts()
+        )
         return amount_of_peptides
