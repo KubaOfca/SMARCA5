@@ -202,11 +202,11 @@ class ReportPage:
         unique_amount_of_peptides = sorted(
             list({value for value in self.amount_of_peptides.values()}))  # [1, 5, 6, 10...]
         color_map_with_amount = {}
-        blue = Color("blue")
-        colors = list(blue.range_to(value=Color("green"),
+        blue = Color("LightBlue")
+        colors = list(blue.range_to(value=Color("DarkBlue"),
                                     steps=len(unique_amount_of_peptides)))
         if len(colors) == 1:
-            colors.append(Color("green"))
+            colors.append(Color("DarkBlue"))
             unique_amount_of_peptides.append(2)
         # blue - min, green - max
         for index, amount in enumerate(unique_amount_of_peptides):
