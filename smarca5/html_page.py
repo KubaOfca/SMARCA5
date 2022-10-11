@@ -165,7 +165,8 @@ class ReportPage:
     def search_peptide_height(self, start, end, peptide_seq):
         overlay_peptides_height = []
         for height, coords in self.peptides_already_displayed_info.values():
-            if coords[0] >= end or coords[1] > start:
+            start_displayed, end_displayed = coords
+            if (start_displayed <= start < end_displayed) or (start_displayed <= end < end_displayed):
                 overlay_peptides_height.append(height)
 
         if overlay_peptides_height:
@@ -177,7 +178,7 @@ class ReportPage:
             current_peptide_height = self.first_empty_line_height
 
         if end >= self.number_of_amino_acids_already_display:
-            end = self.number_of_amino_acids_already_display - 1
+            end = self.number_of_amino_acids_already_display
         self.peptides_already_displayed_info[peptide_seq] = [
             current_peptide_height,
             (start, end),
