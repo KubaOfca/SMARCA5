@@ -1,5 +1,8 @@
 # SMARCA5
 ## Application screenshot
+![image](https://user-images.githubusercontent.com/61982713/194770278-7e5d5598-e554-4e24-a1ba-19fd20585bf9.png)
+![image](https://user-images.githubusercontent.com/61982713/194770292-a15347f1-6840-40b0-83de-df5e0dd67afe.png)
+![image](https://user-images.githubusercontent.com/61982713/194770332-68250e07-4c8a-4c9a-acd9-1dca0d7dffd4.png)
 
 
 ## Installation
