@@ -2,7 +2,7 @@
 
 ---
 
-#Description
+# Description
 
 Main goal of this application is based on making an alignment of any sequence (like protein, DNA, RNA ect.) 
 to its subsequence (f.e. peptides). Visualisation of this proces is done by parsing an output into HTML and CSS,
