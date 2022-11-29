@@ -39,3 +39,6 @@ coverage:
 github_checks:
 
   annotations: true
+
+fixes:
+    - "::SMARCA5/"
