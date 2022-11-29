@@ -21,4 +21,4 @@ coverage:
 github_checks:
   annotations: true
 fixes:
-    - "./::smarca5/"
+  - "./::smarca5/"
