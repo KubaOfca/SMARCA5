@@ -7,6 +7,8 @@ coverage:
     project: no
     patch: yes
     changes: no
+    paths:
+      - "smarca5"
 
 comment:
   layout: "header, diff, changes, tree"
