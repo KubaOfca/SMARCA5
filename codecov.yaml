@@ -1,24 +1,13 @@
-codecov:
-  branch: main
-  disable_default_path_fixes: false
-comment:
-  behavior: default
-  layout: reach,diff,flags,tree,reach
-  show_carryforward_flags: false
-
 coverage:
   precision: 2
-  range:
-  - 70.0
-  - 100.0
   round: down
+  range: "70...100"
+
   status:
-    changes: false
-    default_rules:
-      flag_coverage_not_uploaded_behavior: include
-    patch: true
-    project: true
-github_checks:
-  annotations: true
-fixes:
-  - "./::smarca5/"
+    project: no
+    patch: yes
+    changes: no
+
+comment:
+  layout: "header, diff, changes, tree"
+  behavior: default
